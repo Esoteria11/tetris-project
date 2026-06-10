@@ -90,8 +90,19 @@ class Game:
                         old_shape = self.figure.shape
                         self.figure.shape = new_shape
                         
-                        if self.figure.check_collision(0, 0, self.grid):
-                            self.figure.shape = old_shape
+                        if not self.figure.check_collision(0, 0, self.grid):
+                            pass
+                        else:
+                            kicked = False
+                            
+                            for kick_x in [-1, 1, -2, 2]:
+                                if not self.figure.check_collision(kick_x, 0, self.grid):
+                                    self.figure.x += kick_x
+                                    kicked = True
+                                    break
+                            
+                            if not kicked:
+                                self.figure.shape = old_shape
                     
                     elif event.key == pygame.K_SPACE:
                         while not self.figure.check_collision(0, 1, self.grid):
