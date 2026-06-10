@@ -1,6 +1,6 @@
 import pygame
 import random
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, BLOCK_SIZE, BLACK, WHITE, GRAY, SIDEBAR_BG, FALL_SPEED, GRID_W, GRID_H
+from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, BLOCK_SIZE, BLACK, WHITE, GRAY, SIDEBAR_BG, GHOST, FALL_SPEED, GRID_W, GRID_H
 from tetromino import Tetromino
 
 class Game:
@@ -160,6 +160,14 @@ class Game:
                         rect = pygame.Rect(pixel_x, pixel_y, BLOCK_SIZE, BLOCK_SIZE)
                         pygame.draw.rect(self.screen, self.grid[y][x], rect)
                         pygame.draw.rect(self.screen, BLACK, rect, 2)
+
+            drop_distance = 0
+            while not self.figure.check_collision(0, drop_distance + 1, self.grid):
+                drop_distance += 1
+            
+            ghost_y = self.figure.y + drop_distance
+
+            self.figure.draw_prediction(self.screen, ghost_y, GHOST)
 
             self.figure.draw(self.screen)
             

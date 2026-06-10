@@ -89,3 +89,11 @@ class Tetromino:
             rect = pygame.Rect(pixel_x, pixel_y, BLOCK_SIZE, BLOCK_SIZE)
             pygame.draw.rect(screen, self.color, rect)
             pygame.draw.rect(screen, BLACK, rect, 2)
+
+    def draw_prediction(self, screen, ghost_y, color):
+        for block_x, block_y in self.shape:
+            pixel_x = (self.x + block_x) * BLOCK_SIZE
+            pixel_y = (ghost_y + block_y) * BLOCK_SIZE
+            rect = pygame.Rect(pixel_x, pixel_y, BLOCK_SIZE, BLOCK_SIZE)
+
+            pygame.draw.rect(screen, color, rect, 2)
