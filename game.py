@@ -19,6 +19,9 @@ class Game:
 
         self.next_shape_type = random.choice(['I', 'O', 'T', 'S', 'Z', 'J', 'L'])
         
+        self.last_move_time = 0
+        self.move_delay = 100
+        
         self.spawn_new_figure()
         
         self.FALL_EVENT = pygame.USEREVENT + 1
@@ -82,26 +85,12 @@ class Game:
                     self.running = False
                 
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_LEFT:
-                        if not self.figure.check_collision(-1, 0, self.grid):
-                            self.figure.move_left()
-                    elif event.key == pygame.K_RIGHT:
-                        if not self.figure.check_collision(1, 0, self.grid):
-                            self.figure.move_right()
-                    
-                    elif event.key == pygame.K_DOWN:
-                        if not self.figure.check_collision(0, 1, self.grid):
-                            self.figure.move_down()
-                    
-                    elif event.key == pygame.K_UP:
+                    if event.key == pygame.K_UP:
                         new_shape = self.figure.get_rotated_shape()
                         old_shape = self.figure.shape
-                        
                         self.figure.shape = new_shape
                         
-                        if not self.figure.check_collision(0, 0, self.grid):
-                            pass
-                        else:
+                        if self.figure.check_collision(0, 0, self.grid):
                             self.figure.shape = old_shape
                     
                     elif event.key == pygame.K_SPACE:
@@ -118,6 +107,30 @@ class Game:
                         self.freeze_figure()
                         self.clear_lines()
                         self.spawn_new_figure()
+
+            keys = pygame.key.get_pressed()
+            current_time = pygame.time.get_ticks()
+            
+            if current_time - self.last_move_time > self.move_delay:
+                moved = False
+                
+                if keys[pygame.K_LEFT]:
+                    if not self.figure.check_collision(-1, 0, self.grid):
+                        self.figure.move_left()
+                        moved = True
+                
+                if keys[pygame.K_RIGHT]:
+                    if not self.figure.check_collision(1, 0, self.grid):
+                        self.figure.move_right()
+                        moved = True
+                        
+                if keys[pygame.K_DOWN]:
+                    if not self.figure.check_collision(0, 1, self.grid):
+                        self.figure.move_down()
+                        moved = True
+                
+                if moved:
+                    self.last_move_time = current_time
 
             self.screen.fill(BLACK)
             
