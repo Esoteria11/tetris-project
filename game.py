@@ -11,7 +11,8 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
         self.score = 0
-        self.game_over = False        
+        self.game_over = False
+        self.is_paused = False        
         self.font = pygame.font.Font(None, 36) 
         self.big_font = pygame.font.Font(None, 72)
 
@@ -85,63 +86,67 @@ class Game:
                     self.running = False
                 
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
-                        new_shape = self.figure.get_rotated_shape()
-                        old_shape = self.figure.shape
-                        self.figure.shape = new_shape
+                    if event.key == pygame.K_ESCAPE:
+                        self.is_paused = not self.is_paused
+
+                    if not self.is_paused:
+                        if event.key == pygame.K_UP:
+                            new_shape = self.figure.get_rotated_shape()
+                            old_shape = self.figure.shape
+                            self.figure.shape = new_shape
+                            
+                            if not self.figure.check_collision(0, 0, self.grid):
+                                pass
+                            else:
+                                kicked = False
+                                for kick_x in [-1, 1, -2, 2]:
+                                    if not self.figure.check_collision(kick_x, 0, self.grid):
+                                        self.figure.x += kick_x
+                                        kicked = True
+                                        break
+                                if not kicked:
+                                    self.figure.shape = old_shape
                         
-                        if not self.figure.check_collision(0, 0, self.grid):
-                            pass
-                        else:
-                            kicked = False
-                            
-                            for kick_x in [-1, 1, -2, 2]:
-                                if not self.figure.check_collision(kick_x, 0, self.grid):
-                                    self.figure.x += kick_x
-                                    kicked = True
-                                    break
-                            
-                            if not kicked:
-                                self.figure.shape = old_shape
-                    
-                    elif event.key == pygame.K_SPACE:
-                        while not self.figure.check_collision(0, 1, self.grid):
-                            self.figure.move_down()
-                        self.freeze_figure()
-                        self.clear_lines()
-                        self.spawn_new_figure()
+                        elif event.key == pygame.K_SPACE:
+                            while not self.figure.check_collision(0, 1, self.grid):
+                                self.figure.move_down()
+                            self.freeze_figure()
+                            self.clear_lines()
+                            self.spawn_new_figure()
 
                 elif event.type == self.FALL_EVENT:
-                    if not self.figure.check_collision(0, 1, self.grid):
-                        self.figure.move_down()
-                    else:
-                        self.freeze_figure()
-                        self.clear_lines()
-                        self.spawn_new_figure()
+                    if not self.is_paused:
+                        if not self.figure.check_collision(0, 1, self.grid):
+                            self.figure.move_down()
+                        else:
+                            self.freeze_figure()
+                            self.clear_lines()
+                            self.spawn_new_figure()
 
-            keys = pygame.key.get_pressed()
-            current_time = pygame.time.get_ticks()
-            
-            if current_time - self.last_move_time > self.move_delay:
-                moved = False
+            if not self.is_paused:
+                keys = pygame.key.get_pressed()
+                current_time = pygame.time.get_ticks()
                 
-                if keys[pygame.K_LEFT]:
-                    if not self.figure.check_collision(-1, 0, self.grid):
-                        self.figure.move_left()
-                        moved = True
-                
-                if keys[pygame.K_RIGHT]:
-                    if not self.figure.check_collision(1, 0, self.grid):
-                        self.figure.move_right()
-                        moved = True
-                        
-                if keys[pygame.K_DOWN]:
-                    if not self.figure.check_collision(0, 1, self.grid):
-                        self.figure.move_down()
-                        moved = True
-                
-                if moved:
-                    self.last_move_time = current_time
+                if current_time - self.last_move_time > self.move_delay:
+                    moved = False
+                    
+                    if keys[pygame.K_LEFT]:
+                        if not self.figure.check_collision(-1, 0, self.grid):
+                            self.figure.move_left()
+                            moved = True
+                    
+                    if keys[pygame.K_RIGHT]:
+                        if not self.figure.check_collision(1, 0, self.grid):
+                            self.figure.move_right()
+                            moved = True
+                            
+                    if keys[pygame.K_DOWN]:
+                        if not self.figure.check_collision(0, 1, self.grid):
+                            self.figure.move_down()
+                            moved = True
+                    
+                    if moved:
+                        self.last_move_time = current_time
 
             self.screen.fill(BLACK)
             
@@ -164,9 +169,7 @@ class Game:
             drop_distance = 0
             while not self.figure.check_collision(0, drop_distance + 1, self.grid):
                 drop_distance += 1
-            
             ghost_y = self.figure.y + drop_distance
-
             self.figure.draw_prediction(self.screen, ghost_y, GHOST)
 
             self.figure.draw(self.screen)
@@ -188,12 +191,22 @@ class Game:
                 "Arrows: Move",
                 "Up: Rotate",
                 "Down: Soft Drop",
-                "Space: Hard Drop"
+                "Space: Hard Drop",
+                "ESC: Pause"
             ]
             for i, text in enumerate(controls):
                 ctrl_text = small_font.render(text, True, GRAY)
                 self.screen.blit(ctrl_text, (315, 350 + i * 25))
             
+            if self.is_paused:
+                overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 150))
+                self.screen.blit(overlay, (0, 0))
+                
+                pause_text = self.big_font.render("PAUSED", True, WHITE)
+                pause_rect = pause_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
+                self.screen.blit(pause_text, pause_rect)
+
             pygame.display.flip()
             self.clock.tick(FPS)
 
