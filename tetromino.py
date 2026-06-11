@@ -45,9 +45,29 @@ class Tetromino:
         for block_x, block_y in self.shape:
             pixel_x = (self.x + block_x) * BLOCK_SIZE
             pixel_y = (self.y + block_y) * BLOCK_SIZE
-            rect = pygame.Rect(pixel_x, pixel_y, BLOCK_SIZE, BLOCK_SIZE)
-            pygame.draw.rect(screen, self.color, rect)
-            pygame.draw.rect(screen, (0, 0, 0), rect, 2)
+            
+            for i in range(BLOCK_SIZE):
+                darken = (i / BLOCK_SIZE) * 0.2
+                
+                r = int(self.color[0] * (1 - darken))
+                g = int(self.color[1] * (1 - darken))
+                b = int(self.color[2] * (1 - darken))
+                
+                pygame.draw.line(screen, (r, g, b),
+                               (pixel_x, pixel_y + i),
+                               (pixel_x + BLOCK_SIZE - 1, pixel_y + i))
+            
+            border_color = tuple(min(c + 100, 255) for c in self.color)
+            pygame.draw.rect(screen, border_color, 
+                           (pixel_x, pixel_y, BLOCK_SIZE, BLOCK_SIZE), 2)
+            
+            highlight_color = tuple(min(c + 140, 255) for c in self.color)
+            pygame.draw.line(screen, highlight_color,
+                           (pixel_x + 3, pixel_y + 3),
+                           (pixel_x + BLOCK_SIZE - 4, pixel_y + 3), 2)
+            pygame.draw.line(screen, highlight_color,
+                           (pixel_x + 3, pixel_y + 3),
+                           (pixel_x + 3, pixel_y + BLOCK_SIZE - 4), 2)
 
     def move_down(self):
         self.y += 1
@@ -86,14 +106,33 @@ class Tetromino:
         for block_x, block_y in self.shape:
             pixel_x = offset_x + block_x * BLOCK_SIZE
             pixel_y = offset_y + block_y * BLOCK_SIZE
-            rect = pygame.Rect(pixel_x, pixel_y, BLOCK_SIZE, BLOCK_SIZE)
-            pygame.draw.rect(screen, self.color, rect)
-            pygame.draw.rect(screen, BLACK, rect, 2)
+
+            for i in range(BLOCK_SIZE):
+                darken = (i / BLOCK_SIZE) * 0.4
+                r = int(self.color[0] * (1 - darken))
+                g = int(self.color[1] * (1 - darken))
+                b = int(self.color[2] * (1 - darken))
+                pygame.draw.line(screen, (r, g, b),
+                                 (pixel_x, pixel_y + i),
+                                 (pixel_x + BLOCK_SIZE - 1, pixel_y + i))
+                
+            pygame.draw.rect(screen, BLACK, (pixel_x, pixel_y, BLOCK_SIZE, BLOCK_SIZE), 2)
+            
+            highlight_color = tuple(min(c + 80, 255) for c in self.color)
+            pygame.draw.line(screen, highlight_color,
+                             (pixel_x + 3, pixel_y + 3),
+                             (pixel_x + BLOCK_SIZE - 4, pixel_y + 3), 2)
+            pygame.draw.line(screen, highlight_color,
+                    (pixel_x + 3, pixel_y + 3),
+                    (pixel_x + 3, pixel_y + BLOCK_SIZE - 4), 2)
 
     def draw_prediction(self, screen, ghost_y, color):
         for block_x, block_y in self.shape:
             pixel_x = (self.x + block_x) * BLOCK_SIZE
             pixel_y = (ghost_y + block_y) * BLOCK_SIZE
+            
+            fill_color = tuple(int(c * 0.3) for c in self.color)
             rect = pygame.Rect(pixel_x, pixel_y, BLOCK_SIZE, BLOCK_SIZE)
-
-            pygame.draw.rect(screen, color, rect, 2)
+            pygame.draw.rect(screen, fill_color, rect)
+            
+            pygame.draw.rect(screen, self.color, rect, 2)
