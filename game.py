@@ -1,40 +1,77 @@
 import pygame
 import random
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, BLOCK_SIZE, BLACK, WHITE, GRAY, SIDEBAR_BG, GHOST, FALL_SPEED, GRID_W, GRID_H
+import os
+from settings import (
+    SCREEN_WIDTH, SCREEN_HEIGHT, FPS, BLOCK_SIZE, 
+    BLACK, WHITE, GRAY, RED, SIDEBAR_BG, GHOST, GOLD,
+    FALL_SPEED, GRID_W, GRID_H,
+    VICTORY_SCORE, CAT_IMAGE_SIZE, SIDEBAR_X, SIDEBAR_WIDTH,
+    SIDEBAR_TEXT_X, SIDEBAR_TEXT_START_Y, OVERLAY_ALPHA
+)
 from tetromino import Tetromino
 
-class Game:
+class Game:    
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Тетрис")
-        self.clock = pygame.time.Clock()
+        pygame.display.set_caption("Tetris")
+        self.clock = pygame.time.Clock()      
         self.running = True
         self.score = 0
         self.game_over = False
-        self.is_paused = False        
-        self.font = pygame.font.Font(None, 36) 
+        self.is_paused = False
+        self.victory = False
+        self.font = pygame.font.Font(None, 36)
         self.big_font = pygame.font.Font(None, 72)
-
+        self.small_font = pygame.font.Font(None, 24)
         self.grid = [[None for _ in range(GRID_W)] for _ in range(GRID_H)]
-
         self.next_shape_type = random.choice(['I', 'O', 'T', 'S', 'Z', 'J', 'L'])
-        
         self.last_move_time = 0
         self.move_delay = 100
+        self.victory_cats = self.load_cat_images('victory')
+        self.gameover_cats = self.load_cat_images('gameover')
+        self.current_cat = None
         
         self.spawn_new_figure()
         
         self.FALL_EVENT = pygame.USEREVENT + 1
         pygame.time.set_timer(self.FALL_EVENT, FALL_SPEED)
 
+    def load_cat_images(self, cat_type):
+        cats = []
+        images_dir = os.path.join('assets', 'images')
+        
+        if os.path.exists(images_dir):
+            for filename in os.listdir(images_dir):
+                if cat_type in filename.lower() and filename.lower().endswith(('.jpg', '.png')):
+                    try:
+                        img_path = os.path.join(images_dir, filename)
+                        img = pygame.image.load(img_path)
+                        img = pygame.transform.scale(img, CAT_IMAGE_SIZE)
+                        cats.append(img)
+                    except Exception as e:
+                        print(f"Error loading {filename}: {e}")
+        
+        if not cats:
+            placeholder = pygame.Surface(CAT_IMAGE_SIZE)
+            placeholder.fill(GRAY)
+            cats.append(placeholder)
+        
+        return cats
+
     def spawn_new_figure(self):
-        self.figure = Tetromino(GRID_W // 2 - 1, 0, self.next_shape_type)        
+        self.figure = Tetromino(GRID_W // 2 - 1, 0, self.next_shape_type)
         self.next_shape_type = random.choice(['I', 'O', 'T', 'S', 'Z', 'J', 'L'])
         
         if self.figure.check_collision(0, 0, self.grid):
             self.game_over = True
-            print("GAME OVER! Ваш счет:", self.score)
+            if self.score >= VICTORY_SCORE:
+                self.victory = True
+                self.current_cat = random.choice(self.victory_cats)
+                print(f"VICTORY! Score: {self.score}")
+            else:
+                self.current_cat = random.choice(self.gameover_cats)
+                print(f"GAME OVER! Score: {self.score}")
 
     def freeze_figure(self):
         for block_x, block_y in self.figure.shape:
@@ -58,25 +95,52 @@ class Game:
         if lines_cleared > 0:
             points = [0, 100, 300, 500, 800]
             self.score += points[lines_cleared]
-            print(f"Линий очищено: {lines_cleared}. Счет: {self.score}")
+
+    def draw_end_screen(self, title, title_color):
+        self.screen.fill(BLACK)
+        
+        if self.current_cat:
+            cat_rect = self.current_cat.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
+            self.screen.blit(self.current_cat, cat_rect)
+        
+        title_text = self.big_font.render(title, True, title_color)
+        title_rect = title_text.get_rect(center=(SCREEN_WIDTH // 2, 50))
+        self.screen.blit(title_text, title_rect)
+        
+        score_text = self.font.render(f"Final Score: {self.score}", True, WHITE)
+        score_rect = score_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 80))
+        self.screen.blit(score_text, score_rect)
+        
+        hint_text = self.small_font.render("Press ESC to exit", True, GRAY)
+        hint_rect = hint_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 40))
+        self.screen.blit(hint_text, hint_rect)
 
     def run(self):
         while self.running:
+            if self.victory:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.running = False
+
+                    elif event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_ESCAPE:
+                            self.running = False
+                
+                self.draw_end_screen("VICTORY!", GOLD)
+                pygame.display.flip()
+                self.clock.tick(FPS)
+                continue
+
             if self.game_over:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.running = False
+                    
+                    elif event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_ESCAPE:
+                            self.running = False
                 
-                self.screen.fill(BLACK)
-                game_over_text = self.big_font.render("GAME OVER", True, WHITE)
-                score_text = self.font.render(f"Score: {self.score}", True, WHITE)
-                
-                go_rect = game_over_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 30))
-                sc_rect = score_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 30))
-                
-                self.screen.blit(game_over_text, go_rect)
-                self.screen.blit(score_text, sc_rect)
-                
+                self.draw_end_screen("GAME OVER!", RED)
                 pygame.display.flip()
                 self.clock.tick(FPS)
                 continue
@@ -150,7 +214,7 @@ class Game:
 
             self.screen.fill(BLACK)
             
-            pygame.draw.rect(self.screen, SIDEBAR_BG, (300, 0, 150, SCREEN_HEIGHT))
+            pygame.draw.rect(self.screen, SIDEBAR_BG, (SIDEBAR_X, 0, SIDEBAR_WIDTH, SCREEN_HEIGHT))
             
             for y in range(GRID_H):
                 for x in range(GRID_W):
@@ -175,18 +239,21 @@ class Game:
             self.figure.draw(self.screen)
             
             next_text = self.font.render("NEXT", True, WHITE)
-            self.screen.blit(next_text, (330, 30))
+            self.screen.blit(next_text, (SIDEBAR_TEXT_X, SIDEBAR_TEXT_START_Y))
             
             next_piece_preview = Tetromino(0, 0, self.next_shape_type)
-            next_piece_preview.draw_next(self.screen, 330, 80)
+            next_piece_preview.draw_next(self.screen, SIDEBAR_TEXT_X, SIDEBAR_TEXT_START_Y + 50)
             
             score_label = self.font.render("SCORE", True, WHITE)
-            self.screen.blit(score_label, (330, 200))
+            self.screen.blit(score_label, (SIDEBAR_TEXT_X, SIDEBAR_TEXT_START_Y + 170))
             
             score_value = self.font.render(str(self.score), True, WHITE)
-            self.screen.blit(score_value, (330, 240))
+            self.screen.blit(score_value, (SIDEBAR_TEXT_X, SIDEBAR_TEXT_START_Y + 210))
             
-            small_font = pygame.font.Font(None, 24)
+            progress = min(self.score / VICTORY_SCORE * 100, 100)
+            progress_text = self.font.render(f"{int(progress)}% to Victory", True, WHITE)
+            self.screen.blit(progress_text, (SIDEBAR_TEXT_X - 15, SIDEBAR_TEXT_START_Y + 250))
+            
             controls = [
                 "Arrows: Move",
                 "Up: Rotate",
@@ -195,16 +262,16 @@ class Game:
                 "ESC: Pause"
             ]
             for i, text in enumerate(controls):
-                ctrl_text = small_font.render(text, True, GRAY)
-                self.screen.blit(ctrl_text, (315, 350 + i * 25))
+                ctrl_text = self.small_font.render(text, True, GRAY)
+                self.screen.blit(ctrl_text, (SIDEBAR_TEXT_X - 15, SIDEBAR_TEXT_START_Y + 320 + i * 25))
             
             if self.is_paused:
                 overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-                overlay.fill((0, 0, 0, 150))
+                overlay.fill((0, 0, 0, OVERLAY_ALPHA))
                 self.screen.blit(overlay, (0, 0))
                 
                 pause_text = self.big_font.render("PAUSED", True, WHITE)
-                pause_rect = pause_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
+                pause_rect = pause_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
                 self.screen.blit(pause_text, pause_rect)
 
             pygame.display.flip()
