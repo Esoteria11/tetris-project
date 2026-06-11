@@ -10,6 +10,28 @@ from settings import (
 )
 from tetromino import Tetromino
 
+class Particle:
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.vx = random.uniform(-3, 3)
+        self.vy = random.uniform(-5, -1)
+        self.lifetime = random.randint(30, 60)
+        self.size = random.randint(3, 6)
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.vy += 0.1
+        self.lifetime -= 1
+        self.size = max(1, self.size - 0.1)
+
+    def draw(self, screen):
+        alpha = min(255, self.lifetime * 5)
+        color = tuple(min(c, 255) for c in self.color)
+        pygame.draw.circle(screen, color, (int(self.x), int(self.y)), int(self.size))
+
 class Game:    
     def __init__(self):
         pygame.init()
@@ -31,6 +53,8 @@ class Game:
         self.victory_cats = self.load_cat_images('victory')
         self.gameover_cats = self.load_cat_images('gameover')
         self.current_cat = None
+        self.particles = []
+        self.clearing_lines = []
         
         self.spawn_new_figure()
         
@@ -81,18 +105,26 @@ class Game:
                 self.grid[grid_y][grid_x] = self.figure.color
 
     def clear_lines(self):
-        lines_cleared = 0
-        y = GRID_H - 1
-        
-        while y >= 0:
+        lines_to_clear = []
+
+        for y in range(GRID_H):
             if None not in self.grid[y]:
+                lines_to_clear.append(y)
+
+        if lines_to_clear:
+            for y in lines_to_clear:
+                for x in range(GRID_W):
+                    color = self.grid[y][x]
+                    particle_x = x * BLOCK_SIZE + BLOCK_SIZE // 2
+                    particle_y = y * BLOCK_SIZE + BLOCK_SIZE // 2
+                    for _ in range(random.randint(5, 10)):
+                        self.particles.append(Particle(particle_x, particle_y, color))
+            
+            for y in sorted(lines_to_clear, reverse=True):
                 del self.grid[y]
                 self.grid.insert(0, [None for _ in range(GRID_W)])
-                lines_cleared += 1
-            else:
-                y -= 1
-                
-        if lines_cleared > 0:
+
+            lines_cleared = len(lines_to_clear)
             points = [0, 100, 300, 500, 800]
             self.score += points[lines_cleared]
 
@@ -224,9 +256,28 @@ class Game:
                     if self.grid[y][x] is not None:
                         pixel_x = x * BLOCK_SIZE
                         pixel_y = y * BLOCK_SIZE
-                        rect = pygame.Rect(pixel_x, pixel_y, BLOCK_SIZE, BLOCK_SIZE)
-                        pygame.draw.rect(self.screen, self.grid[y][x], rect)
-                        pygame.draw.rect(self.screen, BLACK, rect, 2)
+                        color = self.grid[y][x]
+                        
+                        for i in range(BLOCK_SIZE):
+                            darken = (i / BLOCK_SIZE) * 0.2
+                            r = int(color[0] * (1 - darken))
+                            g = int(color[1] * (1 - darken))
+                            b = int(color[2] * (1 - darken))
+                            pygame.draw.line(self.screen, (r, g, b),
+                                           (pixel_x, pixel_y + i),
+                                           (pixel_x + BLOCK_SIZE - 1, pixel_y + i))
+                        
+                        border_color = tuple(min(c + 100, 255) for c in color)
+                        pygame.draw.rect(self.screen, border_color,
+                                       (pixel_x, pixel_y, BLOCK_SIZE, BLOCK_SIZE), 2)
+                        
+                        highlight_color = tuple(min(c + 140, 255) for c in color)
+                        pygame.draw.line(self.screen, highlight_color,
+                                       (pixel_x + 3, pixel_y + 3),
+                                       (pixel_x + BLOCK_SIZE - 4, pixel_y + 3), 2)
+                        pygame.draw.line(self.screen, highlight_color,
+                                       (pixel_x + 3, pixel_y + 3),
+                                       (pixel_x + 3, pixel_y + BLOCK_SIZE - 4), 2)
 
             drop_distance = 0
             while not self.figure.check_collision(0, drop_distance + 1, self.grid):
@@ -261,7 +312,7 @@ class Game:
                 "ESC: Pause"
             ]
             for i, text in enumerate(controls):
-                ctrl_text = self.small_font.render(text, True, WHITE)
+                ctrl_text = self.small_font.render(text, True, GRAY)
                 self.screen.blit(ctrl_text, (SIDEBAR_TEXT_X, SIDEBAR_TEXT_START_Y + 320 + i * 28))
             
             if self.is_paused:
@@ -272,6 +323,12 @@ class Game:
                 pause_text = self.big_font.render("PAUSED", True, WHITE)
                 pause_rect = pause_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
                 self.screen.blit(pause_text, pause_rect)
+
+            for particle in self.particles[:]:
+                particle.update()
+                particle.draw(self.screen)
+                if particle.lifetime <= 0:
+                    self.particles.remove(particle)
 
             pygame.display.flip()
             self.clock.tick(FPS)
