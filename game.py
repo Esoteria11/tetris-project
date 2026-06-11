@@ -121,7 +121,6 @@ class Game:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.running = False
-
                     elif event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_ESCAPE:
                             self.running = False
@@ -135,7 +134,6 @@ class Game:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.running = False
-                    
                     elif event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_ESCAPE:
                             self.running = False
@@ -252,18 +250,19 @@ class Game:
             
             progress = min(self.score / VICTORY_SCORE * 100, 100)
             progress_text = self.font.render(f"{int(progress)}% to Victory", True, WHITE)
-            self.screen.blit(progress_text, (SIDEBAR_TEXT_X - 15, SIDEBAR_TEXT_START_Y + 250))
+            self.screen.blit(progress_text, (SIDEBAR_TEXT_X, SIDEBAR_TEXT_START_Y + 260))
             
             controls = [
-                "Arrows: Move",
+                "Controls:",
+                "Left/Right: Move",
                 "Up: Rotate",
                 "Down: Soft Drop",
                 "Space: Hard Drop",
                 "ESC: Pause"
             ]
             for i, text in enumerate(controls):
-                ctrl_text = self.small_font.render(text, True, GRAY)
-                self.screen.blit(ctrl_text, (SIDEBAR_TEXT_X - 15, SIDEBAR_TEXT_START_Y + 320 + i * 25))
+                ctrl_text = self.small_font.render(text, True, WHITE)
+                self.screen.blit(ctrl_text, (SIDEBAR_TEXT_X, SIDEBAR_TEXT_START_Y + 320 + i * 28))
             
             if self.is_paused:
                 overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
