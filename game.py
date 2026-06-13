@@ -6,7 +6,7 @@ from settings import (
     BLACK, WHITE, GRAY, RED, SIDEBAR_BG, GHOST, GOLD,
     FALL_SPEED, GRID_W, GRID_H,
     VICTORY_SCORE, CAT_IMAGE_SIZE, SIDEBAR_X, SIDEBAR_WIDTH,
-    SIDEBAR_TEXT_X, SIDEBAR_TEXT_START_Y, OVERLAY_ALPHA
+    SIDEBAR_TEXT_X, SIDEBAR_TEXT_START_Y, OVERLAY_ALPHA, IS_FULLSCREEN
 )
 from tetromino import Tetromino
 
@@ -35,7 +35,13 @@ class Particle:
 class Game:    
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+        self.is_fullscreen = IS_FULLSCREEN
+        flags = pygame.SCALED
+        if self.is_fullscreen:
+            flags |= pygame.FULLSCREEN
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), flags)
+
         pygame.display.set_caption("Tetris")
         self.clock = pygame.time.Clock()      
         self.running = True
@@ -154,6 +160,13 @@ class Game:
                     if event.type == pygame.QUIT:
                         self.running = False
                     elif event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_F11:
+                            self.is_fullscreen = not self.is_fullscreen
+                            flags = pygame.SCALED
+                            if self.is_fullscreen:
+                                flags |= pygame.FULLSCREEN
+                            self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), flags)
+                            continue
                         if event.key == pygame.K_ESCAPE:
                             self.running = False
                 
@@ -180,6 +193,14 @@ class Game:
                     self.running = False
                 
                 elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_F11:
+                        self.is_fullscreen = not self.is_fullscreen
+                        flags = pygame.SCALED
+                        if self.is_fullscreen:
+                            flags |= pygame.FULLSCREEN
+                        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), flags)
+                        continue
+                    
                     if event.key == pygame.K_ESCAPE:
                         self.is_paused = not self.is_paused
 
@@ -309,7 +330,8 @@ class Game:
                 "Up: Rotate",
                 "Down: Soft Drop",
                 "Space: Hard Drop",
-                "ESC: Pause"
+                "ESC: Pause",
+                "F11: Fullscreen"
             ]
             for i, text in enumerate(controls):
                 ctrl_text = self.small_font.render(text, True, GRAY)
