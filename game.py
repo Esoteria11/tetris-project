@@ -111,28 +111,28 @@ class Game:
                 self.grid[grid_y][grid_x] = self.figure.color
 
     def clear_lines(self):
-        lines_to_clear = []
+        lines_cleared = 0
+        y = GRID_H - 1
 
-        for y in range(GRID_H):
+        while y >= 0:
             if None not in self.grid[y]:
-                lines_to_clear.append(y)
-
-        if lines_to_clear:
-            for y in lines_to_clear:
                 for x in range(GRID_W):
                     color = self.grid[y][x]
                     particle_x = x * BLOCK_SIZE + BLOCK_SIZE // 2
                     particle_y = y * BLOCK_SIZE + BLOCK_SIZE // 2
                     for _ in range(random.randint(5, 10)):
                         self.particles.append(Particle(particle_x, particle_y, color))
-            
-            for y in sorted(lines_to_clear, reverse=True):
+
                 del self.grid[y]
                 self.grid.insert(0, [None for _ in range(GRID_W)])
+                lines_cleared += 1
+            else:
+                y -= 1
 
-            lines_cleared = len(lines_to_clear)
+        if lines_cleared > 0:
             points = [0, 100, 300, 500, 800]
-            self.score += points[lines_cleared]
+            score_add = points[min(lines_cleared, 4)]
+            self.score += score_add
 
     def draw_end_screen(self, title, title_color):
         self.screen.fill(BLACK)
